@@ -1,0 +1,6 @@
+# Routes
+# This file defines all application routes (Higher priority routes first)
+# ~~~~
+
+GET         /v1/features/:id        v1.controllers.DataApiController.getFeatures(id)
+POST        /v1/features            v1.controllers.DataApiController.getBulkFeatures
