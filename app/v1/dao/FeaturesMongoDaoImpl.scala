@@ -58,7 +58,6 @@ class FeaturesMongoDaoImpl @Inject()(reactiveMongoApi: ReactiveMongoApi)
           efJsonOpt <- content.map { builder =>
             val bytes = builder.result()
             val featuresJson = Json.parse(bytes).as[JsObject]
-            fs.ensureIndex()
             val efJson = featuresJson ++ Json.obj(
               "id" -> file.id.as[String],
               "metadata" -> file.metadata
