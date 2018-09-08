@@ -1,6 +1,7 @@
 package v1.controllers
 
 import java.nio.charset.StandardCharsets
+import java.util.Base64
 
 import akka.stream.scaladsl.Source
 import akka.util.ByteString
@@ -21,10 +22,11 @@ class DataApiController @Inject()(featuresDao: FeaturesDao,
       contentType = Some(ContentTypes.JSON)
     )
 
-  def getFeatures(id: String): Action[AnyContent] =
+  def getFeatures(base64Id: String): Action[AnyContent] =
     Action.async { implicit req =>
       render.async {
         case Accepts.Json() =>
+          val id = new String(Base64.getDecoder.decode(base64Id), StandardCharsets.UTF_8)
           featuresDao.getFeatures(id)
             .map {
               case Some(json) => Ok(json)
