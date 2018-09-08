@@ -27,7 +27,7 @@ where `HOST` is the desired hostname or IP to bind to, and `PORT` is the desired
 ## Request format
 ### Single retrieval
 ```
-GET   /api/v1/features/<urlencoded document id>
+GET   /api/v1/features/<base64 encoded document id>
 ```
 ### Bulk retrieval
 ```
@@ -40,7 +40,7 @@ POST  /api/v1/features
       ID3
       ...
 ```
-Note: For the POST request, the document IDs need not be urlencoded.
+Note: For the POST request, the document IDs should not be base64 encoded.
 
 ## Response format
 The response follows the [jsonlines.org](jsonlines.org) format (i.e. one JSON object per line)
@@ -51,7 +51,7 @@ Note: The service respects the HTTP `Accept` header.
 # Example
 
 To retrieve document features for document with id `http://hdl.handle.net/2027/hvd.32044107317042`, use:  
-`curl -v -X GET 'http://HOSTNAME:PORT/api/v1/features/http%3a%2f%2fhdl.handle.net%2f2027%2fhvd.32044107317042'`
+`curl -v -X GET 'http://HOSTNAME:PORT/api/v1/features/aHR0cDovL2hkbC5oYW5kbGUubmV0LzIwMjcvaHZkLjMyMDQ0MTA3MzE3MDQy'`
 
 Which returns data similar to the following snippet:
 ```
