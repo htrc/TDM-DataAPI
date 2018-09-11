@@ -21,11 +21,12 @@ class DataApiController @Inject()(featuresDao: FeaturesDao,
       obj => ByteString(Json.stringify(obj) + "\n", StandardCharsets.UTF_8),
       contentType = Some(ContentTypes.TEXT(Codec.utf_8))
     )
+  private val AcceptTextPlain: Accepting = Accepting("text/plain")
 
   def getFeatures(base64Id: String): Action[AnyContent] =
     Action.async { implicit req =>
       render.async {
-        case Accepts.Json() =>
+        case AcceptTextPlain() =>
           val id = new String(Base64.getDecoder.decode(base64Id), StandardCharsets.UTF_8).trim()
           featuresDao.getFeatures(id)
             .map {
@@ -38,7 +39,7 @@ class DataApiController @Inject()(featuresDao: FeaturesDao,
   def getBulkFeatures: Action[String] =
     Action(parse.text) { implicit req =>
       render {
-        case Accepts.Json() =>
+        case AcceptTextPlain() =>
           if (req.body == null || req.body.isEmpty)
             BadRequest
           else {
