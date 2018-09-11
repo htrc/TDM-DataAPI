@@ -19,7 +19,7 @@ class DataApiController @Inject()(featuresDao: FeaturesDao,
   private val jsonWritable: Writeable[JsObject] =
     Writeable(
       obj => ByteString(Json.stringify(obj) + "\n", StandardCharsets.UTF_8),
-      contentType = Some(ContentTypes.JSON)
+      contentType = Some(ContentTypes.TEXT(Codec.utf_8))
     )
 
   def getFeatures(base64Id: String): Action[AnyContent] =
