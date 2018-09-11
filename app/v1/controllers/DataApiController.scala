@@ -26,7 +26,7 @@ class DataApiController @Inject()(featuresDao: FeaturesDao,
     Action.async { implicit req =>
       render.async {
         case Accepts.Json() =>
-          val id = new String(Base64.getDecoder.decode(base64Id), StandardCharsets.UTF_8)
+          val id = new String(Base64.getDecoder.decode(base64Id), StandardCharsets.UTF_8).trim()
           featuresDao.getFeatures(id)
             .map {
               case Some(json) => Ok(json)
