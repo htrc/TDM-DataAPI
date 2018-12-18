@@ -45,6 +45,9 @@ Note: For the POST request, the document IDs should not be base64 encoded.
 ## Response format
 The response follows the [jsonlines.org](jsonlines.org) format (i.e. one JSON object per line)
 
+For single retrieval requests, the response `Content-Type` is `application/json`, while for bulk requests, 
+the `Content-Type` is `application/x-ndjson` (more details here: https://github.com/ndjson/ndjson-spec)
+
 Note: The service respects the HTTP `Accept` header.
       The service can return responses in GZIP format by setting `Accept-Encoding: gzip` request header.
 

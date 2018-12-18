@@ -7,7 +7,7 @@ git.useGitDescribe := true
 lazy val commonSettings = Seq(
   organization := "tdm",
   organizationName := "Text and Data Mining (TDM) initiative involving HathiTrust/HTRC, JSTOR, and Portico",
-  scalaVersion := "2.12.6",
+  scalaVersion := "2.12.8",
   scalacOptions ++= Seq(
     "-feature",
     "-language:postfixOps",
@@ -51,9 +51,6 @@ lazy val `tdm-data-api` = (project in file("."))
     libraryDependencies ++= Seq(
       guice,
       filters,
-      "com.typesafe.play"             %% "play-iteratees"                   % "2.6.1",
-      "com.typesafe.play"             %% "play-iteratees-reactive-streams"  % "2.6.1",
-      "org.reactivemongo"             %% "reactivemongo-iteratees"          % "0.16.0",
       "org.reactivemongo"             %% "play2-reactivemongo"              % "0.16.0-play26",
       "org.scalatestplus.play"        %% "scalatestplus-play"               % "3.1.2"   % Test
     )

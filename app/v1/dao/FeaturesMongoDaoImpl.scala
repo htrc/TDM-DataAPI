@@ -1,32 +1,31 @@
 package v1.dao
 
-import _root_.utils.FutureUtil
+import java.io.ByteArrayInputStream
+import java.util.zip.GZIPInputStream
+
+import _root_.utils.Using.using
+import akka.NotUsed
+import akka.stream.scaladsl.Source
 import javax.inject.{Inject, Singleton}
-import org.reactivestreams.Publisher
 import play.api.Logger
 import play.api.libs.iteratee._
-import play.api.libs.iteratee.streams.IterateeStreams
 import play.api.libs.json.{JsObject, Json}
+import play.modules.reactivemongo.MongoController._
 import play.modules.reactivemongo.ReactiveMongoApi
-import reactivemongo.api.gridfs.Implicits._
-import reactivemongo.api.gridfs.{GridFS, ReadFile}
+import reactivemongo.api.DefaultDB
 import reactivemongo.api.indexes.Index
 import reactivemongo.api.indexes.IndexType.Ascending
-import reactivemongo.api.{BSONSerializationPack, DefaultDB}
-import reactivemongo.bson._
-import reactivemongo.play.iteratees.cursorProducer
 import reactivemongo.play.json._
 
 import scala.collection.mutable
 import scala.concurrent.{ExecutionContext, Future}
+import scala.reflect.ClassTag
 
 @Singleton
 class FeaturesMongoDaoImpl @Inject()(reactiveMongoApi: ReactiveMongoApi)
                                     (implicit ec: ExecutionContext) extends FeaturesDao {
   def db: Future[DefaultDB] = reactiveMongoApi.database
-
-  type BSONGridFS = GridFS[BSONSerializationPack.type]
-  def gridFS: Future[BSONGridFS] = db.map(GridFS[BSONSerializationPack.type](_))
+  def gridFS: Future[JsGridFS] = reactiveMongoApi.asyncGridFS
 
   for {
     gfs <- gridFS
@@ -38,57 +37,42 @@ class FeaturesMongoDaoImpl @Inject()(reactiveMongoApi: ReactiveMongoApi)
     Logger.info(s"Mongo index creation status: GFS: $fi, Meta: $mi")
   }
 
-
-  implicit object BSONValueStringReader extends BSONReader[BSONValue, String] {
-    def read(v: BSONValue): String = v match {
-      case oid: BSONObjectID => oid.stringify
-      case s: BSONString => s.value
-      case other => other.toString
-    }
-  }
-
-  override def getFeatures(id: String): Future[Option[JsObject]] = {
+  override def getFeatures(id: String)(implicit ec: ExecutionContext): Future[Option[JsObject]] = {
     getFile(id).flatMap {
-      case Some(file) =>
-        for {
-          fs <- gridFS
-          content = fs.enumerate(file) |>>> Iteratee.fold(mutable.ArrayBuilder.make[Byte]()) {
-            _ ++= _
-          }
-          efJsonOpt <- content.map { builder =>
-            val bytes = builder.result()
-            val featuresJson = Json.parse(bytes).as[JsObject]
-            val efJson = featuresJson ++ Json.obj(
-              "id" -> file.id.as[String],
-              "metadata" -> file.metadata
-            )
-            Some(efJson)
-          }
-        } yield efJsonOpt
-
+      case Some(file) => readFile(file).map(Some(_))
       case None => Future.successful(None)
     }
   }
 
-  override def getFeatures(ids: Set[String]): Publisher[JsObject] = {
-    val futures = ids.toSeq.map(getFeatures)
-    val enumerator =
-      Enumerator.unfoldM(futures) { remainingFutures =>
-        if (remainingFutures.isEmpty) {
-          Future(None)
-        } else {
-          FutureUtil.select(remainingFutures).map {
-            case (t, seqFuture) => t.toOption.map {
-              a => (seqFuture, a)
-            }
-          }
-        }
-      } &> Enumeratee.collect { case Some(features) => features }
-
-    IterateeStreams.enumeratorToPublisher(enumerator)
+  override def getFeaturesAsSource(ids: Set[String])(parallelism: Int = 1): Source[JsObject, NotUsed] = {
+    Source(ids).mapAsyncUnordered(parallelism)(getFeatures).collect {
+      case Some(ef) => ef
+    }
   }
 
-  protected def getFile(id: String): Future[Option[ReadFile[BSONSerializationPack.type, BSONValue]]] = {
-    gridFS.flatMap(_.find(BSONDocument("metadata.id" -> id)).headOption)
+  protected def readFile(file: JsReadFile[JsObject])(implicit ec: ExecutionContext): Future[JsObject] = {
+    for {
+      gfs <- gridFS
+      content = gfs.enumerate(file) |>>> Iteratee.fold(arrayBuilderOfKnownSize[Byte](file.length))(_ ++= _)
+      efJson <- content.map { builder =>
+        val bytes = builder.result()
+        val featuresJson = using(new GZIPInputStream(new ByteArrayInputStream(bytes), bytes.length))(Json.parse(_).as[JsObject])
+        val json = featuresJson ++ Json.obj(
+          "id" -> (file.id \ "$oid").as[String],
+          "metadata" -> file.metadata
+        )
+        json
+      }
+    } yield efJson
+  }
+
+  protected def getFile(id: String)(implicit ec: ExecutionContext): Future[Option[JsReadFile[JsObject]]] = {
+    gridFS.flatMap(_.find(Json.obj("metadata.id" -> id)).headOption)
+  }
+
+  private def arrayBuilderOfKnownSize[T: ClassTag](size: Long): mutable.ArrayBuilder[T] = {
+    val builder = mutable.ArrayBuilder.make[T]()
+    builder.sizeHint(size.toInt)
+    builder
   }
 }
