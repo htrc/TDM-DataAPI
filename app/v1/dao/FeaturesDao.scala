@@ -1,15 +1,16 @@
 package v1.dao
 
+import akka.NotUsed
+import akka.stream.scaladsl.Source
 import com.google.inject.ImplementedBy
-import org.reactivestreams.Publisher
 import play.api.libs.json.JsObject
 
-import scala.concurrent.Future
+import scala.concurrent.{ExecutionContext, Future}
 
 @ImplementedBy(classOf[FeaturesMongoDaoImpl])
 trait FeaturesDao {
 
-  def getFeatures(id: String): Future[Option[JsObject]]
-  def getFeatures(ids: Set[String]): Publisher[JsObject]
+  def getFeatures(id: String)(implicit ec: ExecutionContext): Future[Option[JsObject]]
+  def getFeaturesAsSource(ids: Set[String])(parallelism: Int = 1): Source[JsObject, NotUsed]
 
 }

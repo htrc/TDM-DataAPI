@@ -7,4 +7,7 @@ import v1.filters.{InfoFilter, LoggingFilter}
 class Filters @Inject()(gzipFilter: GzipFilter,
                         buildInfoFilter: InfoFilter,
                         accessLoggerFilter: LoggingFilter)
-  extends DefaultHttpFilters(gzipFilter, buildInfoFilter, accessLoggerFilter)
+  extends DefaultHttpFilters(
+    gzipFilter,
+    buildInfoFilter,
+    accessLoggerFilter)

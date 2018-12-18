@@ -1,8 +1,7 @@
 package v1.filters
 
-import javax.inject.{Inject, Singleton}
-
 import akka.stream.Materializer
+import javax.inject.{Inject, Singleton}
 import org.joda.time.DateTime
 import play.api.Logger
 import play.api.mvc._
@@ -32,7 +31,7 @@ class LoggingFilter @Inject()(implicit val mat: Materializer,
 
       accessLogger.info(f"""${requestHeader.remoteAddress} - $strStartTime "${requestHeader.method} ${requestHeader.uri} ${requestHeader.version}" $protocol ${result.header.status} $strRespSize "$referrer" "$userAgent" ($requestTime%,d ms)""")
 
-      result.withHeaders("X-Quanogen-RequestTime" -> requestTime.toString)
+      result
     }
   }
 }
